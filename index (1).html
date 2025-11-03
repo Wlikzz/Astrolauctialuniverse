@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstroSite — Astrofotografía</title>
+  <meta name="description" content="Portafolio de astrofotografía. Campo estelar animado, galería y recursos." />
+
+  <!-- Fuentes -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#05060a;
+      --card-bg: rgba(255,255,255,0.04);
+      --accent: rgba(120,200,255,0.9);
+      --glass: rgba(255,255,255,0.03);
+      --muted: rgba(255,255,255,0.6);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(ellipse at bottom, #081226 0%, var(--bg) 60%);
+      color:#e6f3ff;
+      font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow-x:hidden;
+    }
+
+    /* canvas starfield covers viewport */
+    #starfield{position:fixed;inset:0;z-index:0}
+
+    header{
+      position:relative;z-index:2;padding:48px 20px 12px;display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#88d1ff44,#6b39ff33);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-family:'Playfair Display',serif;box-shadow:0 6px 18px rgba(0,0,0,0.5);backdrop-filter:blur(4px)
+    }
+    nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-weight:500}
+    nav a:hover{color:var(--accent)}
+
+    /* Hero */
+    .hero{position:relative;z-index:1;max-width:1200px;margin:12px auto;padding:48px 20px;display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:center}
+    .hero-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:16px;padding:30px;box-shadow:0 10px 40px rgba(2,6,23,0.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.03)}
+    h1{font-family:'Playfair Display', serif;font-size:36px;margin:0 0 8px}
+    p.lead{color:var(--muted);margin:0 0 18px}
+    .cta{display:flex;gap:12px}
+    .btn{padding:12px 16px;border-radius:10px;border:0;font-weight:600;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,#60a5ff,#8b5cf6);color:#021028}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+
+    /* preview card */
+    .preview{border-radius:12px;overflow:hidden;height:100%;display:flex;flex-direction:column}
+    .preview img{width:100%;height:320px;object-fit:cover}
+    .preview .meta{padding:14px}
+    .tags{display:flex;gap:8px;flex-wrap:wrap}
+    .tag{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted)}
+
+    /* Sections */
+    main{position:relative;z-index:2;max-width:1200px;margin:24px auto;padding:0 20px}
+    .section{margin:34px 0}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{background:var(--card-bg);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.02)}
+
+    /* gallery */
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .gallery img{width:100%;height:160px;object-fit:cover;border-radius:10px;cursor:pointer;transition:transform .25s ease}
+    .gallery img:hover{transform:scale(1.03)}
+
+    /* Lightbox modal */
+    .modal{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.85));display:flex;align-items:center;justify-content:center;padding:30px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal.open{opacity:1;pointer-events:auto}
+    .modal .inner{max-width:1000px;width:100%;}
+    .modal img{width:100%;height:auto;border-radius:12px}
+    .modal .close{position:absolute;top:18px;right:22px;background:#11182733;border-radius:8px;padding:8px}
+
+    footer{color:var(--muted);padding:24px 20px;text-align:center}
+
+    /* Responsive */
+    @media (max-width:880px){
+      .hero{grid-template-columns:1fr;}
+      .hero .preview img{height:220px}
+      .grid{grid-template-columns:1fr}
+    }
+
+    /* small glowing stars for headings */
+    .glow{display:inline-block;vertical-align:middle;margin-right:8px;filter:drop-shadow(0 8px 18px rgba(120,200,255,0.12))}
+
+    /* subtle floating animation */
+    .float{animation:floaty 6s ease-in-out infinite}
+    @keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+
+  <header>
+    <div class="brand">
+      <div class="logo">AS</div>
+      <div>
+        <div style="font-weight:700">AstroSite</div>
+        <div style="font-size:12px;color:var(--muted)">Astrofotografía & Exploración</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#about">Sobre</a>
+      <a href="#gallery">Galería</a>
+      <a href="#contact">Contacto</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-card">
+      <h1><span class="glow">✦</span>Astrofotografía — Cielo Profundo</h1>
+      <p class="lead">Imágenes y proyectos inspirados por nebulosas, cúmulos estelares y la Vía Láctea. Diseño limpio, oscuro y enfocado en la fotografía nocturna.</p>
+      <div class="cta">
+        <button class="btn btn-primary" id="view-gallery">Ver galería</button>
+        <button class="btn btn-ghost" id="download-sample">Descargar fondo</button>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:12px;align-items:center">
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--muted)">Proyectos destacados</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="tag">Nebulosas</div>
+            <div class="tag">Tiempo-lapso</div>
+            <div class="tag">Procesado RAW</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Mi equipo: C8, EQ mod, ASI294</div>
+      </div>
+    </div>
+
+    <div class="preview">
+      <!-- imagen de portada; puedes cambiar las URLs por tus fotos -->
+      <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Astrofotografía destacada">
+      <div class="meta">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>M31 — Andrómeda</strong>
+            <div style="font-size:13px;color:var(--muted)">Combinación de 40 exposiciones</div>
+          </div>
+          <div class="tags">
+            <div class="tag">ISO 800</div>
+            <div class="tag">L 120s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section id="about" class="section">
+      <div class="card">
+        <h2 style="margin-top:0">Sobre el proyecto</h2>
+        <p style="color:var(--muted)">AstroSite es un portfolio ficticio creado para mostrar un estilo estético y funcional para fotógrafos del cielo nocturno. Contiene una galería, estilos oscuros para destacar tus fotografías y una interfaz ligera para mostrar metadatos.</p>
+        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+          <div class="tag">Procesado</div>
+          <div class="tag">Apilado</div>
+          <div class="tag">Calibrado</div>
+          <div class="tag">Observatorio casero</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gallery" class="section">
+      <h3 style="margin:0 0 12px">Galería</h3>
+      <div class="gallery" id="gallery-grid">
+        <!-- imágenes de ejemplo de Unsplash; reemplaza por tus propias imágenes si quieres -->
+        <img src="https://images.unsplash.com/photo-1470290378698-2c3a0d6c0f0b?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Nebulosa" data-title="Nebulosa Sombrero">
+        <img src="https://images.unsplash.com/photo-1473956485016-9c6c3b2b4fb5?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Vía Láctea" data-title="Vía Láctea sobre montañas">
+        <img src="https://images.unsplash.com/photo-1470770903676-69b98201ea1c?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Cúmulo estelar" data-title="Cúmulo estelar">
+        <img src="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Nebulosa brillante" data-title="Nebulosa brillante">
+        <img src="https://images.unsplash.com/photo-1482192505345-5655af888cc4?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Cielo nocturno" data-title="Cielo nocturno rural">
+        <img src="https://images.unsplash.com/photo-1435224654926-ecc9f7fa028c?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=example" alt="Planetas" data-title="Conjunción planetaria">
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="card">
+        <h3>Contacto</h3>
+        <p style="color:var(--muted)">Si quieres usar este diseño o pedir una versión personalizada, déjame un mensaje (este formulario es solo visual — no envía emails sin backend).</p>
+        <form id="contact-form" onsubmit="event.preventDefault();alert('Gracias — formulario demo.\nPuedes integrar un backend o usar Formspree/Netlify Forms.');">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input placeholder="Tu nombre" required style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit">
+            <input placeholder="Tu email" required style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit">
+          </div>
+          <textarea placeholder="Mensaje" required style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;min-height:100px"></textarea>
+          <div style="margin-top:8px"><button class="btn btn-primary">Enviar (demo)</button></div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Lightbox modal -->
+  <div id="lightbox" class="modal" role="dialog" aria-hidden="true">
+    <div class="inner">
+      <button class="close" id="lightbox-close">✕</button>
+      <img id="lightbox-img" src="" alt="">
+      <div style="color:var(--muted);margin-top:8px" id="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>© <span id="year"></span> AstroSite — Demo estética de astrofotografía</div>
+  </footer>
+
+  <script>
+    // Fecha en el footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Lightbox simple
+    const gallery = document.getElementById('gallery-grid');
+    const lightbox = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    const lbCaption = document.getElementById('lightbox-caption');
+    gallery.addEventListener('click', e => {
+      if(e.target.tagName === 'IMG'){
+        lbImg.src = e.target.src.replace('q=80','q=100');
+        lbImg.alt = e.target.alt || '';
+        lbCaption.textContent = e.target.dataset.title || e.target.alt || '';
+        lightbox.classList.add('open');
+        lightbox.setAttribute('aria-hidden','false');
+      }
+    });
+    document.getElementById('lightbox-close').addEventListener('click', ()=>{ lightbox.classList.remove('open'); lightbox.setAttribute('aria-hidden','true'); });
+    lightbox.addEventListener('click', (e)=>{ if(e.target===lightbox) { lightbox.classList.remove('open'); lightbox.setAttribute('aria-hidden','true'); } });
+
+    // Botón: ver galería
+    document.getElementById('view-gallery').addEventListener('click', ()=>{ location.hash = '#gallery'; window.scrollBy(0,-16); });
+
+    // botón descarga de ejemplo - genera un fondo simple (canvas) y lo descarga
+    document.getElementById('download-sample').addEventListener('click', ()=>{
+      const c = document.createElement('canvas'); c.width=1600; c.height=900; const ctx=c.getContext('2d');
+      // degradado estilo nocturno
+      const g = ctx.createLinearGradient(0,0,0,c.height); g.addColorStop(0,'#021025'); g.addColorStop(1,'#05060a'); ctx.fillStyle=g; ctx.fillRect(0,0,c.width,c.height);
+      // añadir un gradiente leve
+      ctx.fillStyle='rgba(120,200,255,0.03)'; ctx.fillRect(0,0,c.width,c.height);
+      // pequeños puntos - estrellas
+      for(let i=0;i<400;i++){ const x=Math.random()*c.width; const y=Math.random()*c.height; const r=Math.random()*1.6; ctx.fillStyle='rgba(255,255,255,'+(0.5+Math.random()*0.9)+')'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+      const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download='astro-fondo.png'; a.click();
+    });
+
+    // STARFIELD: simple pero bonito
+    (function(){
+      const canvas = document.getElementById('starfield');
+      const ctx = canvas.getContext('2d');
+      let w=canvas.width=innerWidth, h=canvas.height=innerHeight;
+      const stars=[];
+      const STAR_COUNT = Math.min(800, Math.floor((w*h)/900));
+      for(let i=0;i<STAR_COUNT;i++){
+        stars.push({x:Math.random()*w, y:Math.random()*h, z:Math.random()*1, r:Math.random()*1.1+0.1, vx:(Math.random()-0.5)*0.02});
+      }
+      function resize(){ w=canvas.width=innerWidth; h=canvas.height=innerHeight; }
+      addEventListener('resize', resize);
+      function draw(){ ctx.clearRect(0,0,w,h);
+        // nebulous gradient
+        const g=ctx.createRadialGradient(w*0.15,h*0.2,50,w*0.6,h*0.7,Math.max(w,h));
+        g.addColorStop(0,'rgba(120,200,255,0.02)'); g.addColorStop(0.3,'rgba(139,92,246,0.02)'); g.addColorStop(1,'rgba(5,6,10,0)');
+        ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+
+        for(let s of stars){ s.x += s.vx; s.y += Math.sin((Date.now()/6000)+s.x/200)*0.05; if(s.x<0) s.x=w; if(s.x>w) s.x=0; // wrap
+          const alpha = 0.6 + 0.4*Math.sin((Date.now()/800)+s.x*0.01);
+          ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,'+alpha+')'; ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      draw();
+    })();
+
+    // accesibilidad: keyboard close
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ lightbox.classList.remove('open'); lightbox.setAttribute('aria-hidden','true'); } });
+
+  </script>
+</body>
+</html>
